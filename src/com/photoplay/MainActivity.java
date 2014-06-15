@@ -19,6 +19,7 @@ import org.andengine.opengl.texture.atlas.bitmap.source.AssetBitmapTextureAtlasS
 import org.andengine.opengl.texture.region.ITextureRegion;
 import org.andengine.ui.activity.SimpleBaseGameActivity;
 
+import android.util.Log;
 import android.widget.Toast;
 
 public class MainActivity extends SimpleBaseGameActivity {
@@ -31,7 +32,8 @@ public class MainActivity extends SimpleBaseGameActivity {
 	private ITextureRegion mBoxTextureRegion;
 	private RepeatingSpriteBackground mBackground;
 	private Grid grid;
-
+	private Score Score;
+	private boolean moved;
 	@Override
 	public EngineOptions onCreateEngineOptions() {
 		Toast.makeText(this, "Touch & Drag the boxes!", Toast.LENGTH_LONG).show();
@@ -47,7 +49,7 @@ public class MainActivity extends SimpleBaseGameActivity {
 
 		this.mBitmapTextureAtlas = new BitmapTextureAtlas(this.getTextureManager(), 80, 80, TextureOptions.BILINEAR);
 		this.mBoxTextureRegion = BitmapTextureAtlasTextureRegionFactory.createFromAsset(this.mBitmapTextureAtlas, this, "box.png", 0, 0);
-		this.mBackground = new RepeatingSpriteBackground(CAMERA_WIDTH, CAMERA_HEIGHT, this.getTextureManager(), AssetBitmapTextureAtlasSource.create(this.getAssets(), "gfx/background.png"), this.getVertexBufferObjectManager());
+		this.mBackground = new RepeatingSpriteBackground(CAMERA_WIDTH, CAMERA_HEIGHT, this.getTextureManager(), AssetBitmapTextureAtlasSource.create(this.getAssets(), "gfx/cats.jpg"), this.getVertexBufferObjectManager());
 		this.mBitmapTextureAtlas.load();
 	}
 
@@ -57,7 +59,10 @@ public class MainActivity extends SimpleBaseGameActivity {
 
 		final Scene scene = new Scene();
 		scene.setBackground(new Background(0.09804f, 0.6274f, 0.8784f));
-		
+		int s= 1000;
+		this.Score = new Score(s);
+		Log.v("Score gemaakt!", "Punten = "+Score.getScore());
+		moved = false;
 		grid = new Grid(CAMERA_WIDTH, CAMERA_HEIGHT, this.mBoxTextureRegion.getWidth(), this.mBoxTextureRegion.getHeight());
 		while (!grid.isFinished()) {
 			drawBoxSprite(scene,grid.currentPosition);
@@ -88,7 +93,7 @@ public class MainActivity extends SimpleBaseGameActivity {
 	
 	public void drawBoxSprite (Scene scene, Vector2 v) { //nieuwe class maken
 		final Sprite box = new Sprite(v.x, v.y, this.mBoxTextureRegion, this.getVertexBufferObjectManager()) {
-			float x = -1, y = -1;
+			float x = -1, y = -1; 
 			
 			@Override
 			public boolean onAreaTouched(final TouchEvent touchEvent, float touchAreaLocalX, float touchAreaLocalY) {
@@ -100,6 +105,8 @@ public class MainActivity extends SimpleBaseGameActivity {
 				    				this.setPosition(snap.x, snap.y);
 				    				this.setColor(0.0f, 0.7f, 0.0f, 0.5f);
 				    				this.setZIndex(999999);
+				                	Log.v("tag", "Action_Move");
+				                	
 			    				}
 			                    return true;
 			                }
@@ -109,7 +116,22 @@ public class MainActivity extends SimpleBaseGameActivity {
 			                	x = this.getX();
 			                	y = this.getY();
 			                	grid.removeUnavailibleSnappoint(new Vector2(x,y));
-			                    return true; 
+			                	Log.v("tag", "Action_Down");
+			                	if(Score.getScore() < 0){
+			                		Log.v("Score op 0?", "Punten = "+Score.getScore());
+			                		return false;
+			                	}else if(moved=true){
+			                		Score.draggedMove(Score.getScore());
+			                		moved =false;
+			                		Log.v("Score eraf?", "draggedMove Punten = "+Score.getScore());
+			                		return true;
+			                	}
+			                	else{
+			                		Score.normalMove(Score.getScore());
+			                		Log.v("Score eraf?", "normalMove Punten = "+Score.getScore());
+			                		return true; 
+			                	}
+			                	
 			                }
 			                case TouchEvent.ACTION_UP:{
 			                	if (this.getX() == x && this.getY() == y) { /*TODO : 	timer in de vorm van or (||) statement erbij zetten 
@@ -119,6 +141,7 @@ public class MainActivity extends SimpleBaseGameActivity {
 			                															deleten van boxes bij tappen) */                       
 			                		//Current position is same as start position
 			                		//detach sprite
+				                	Log.v("tag", "Action_UP");
 			                		this.detachSelf();
 			                		//TODO : score minus 50 (so total will be minus 100)
 			                		//TODO : particles
@@ -130,7 +153,9 @@ public class MainActivity extends SimpleBaseGameActivity {
 			                    return true; 
 			                }
 			                case TouchEvent.ACTION_CANCEL:{
+			                	
 			                	this.setColor(1.0f, 0.0f, 0.0f, 1f);
+			                	Log.v("tag", "Action_Cancel");
 			                    return true; 
 			                }
 			                default:{
